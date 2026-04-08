@@ -72,9 +72,10 @@ label{display:block;margin-bottom:8px;font-weight:600}
    uncomment the @font-face block below (can't bundle it automatically). */
 @font-face{
   font-family: 'Minecraft';
-  src: url('../fonts/minecraft.ttf') format('truetype');
+  src: url('fonts/Minecraft.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 #preview-space: 300px;
 :root{--sb-font-size:14px;--preview-space:520px}
@@ -83,14 +84,16 @@ body{padding-right:var(--preview-space)}
 
 /* Minecraft-like square scoreboard box */
 /* wider scoreboard preview */
-#sb-preview .sb-box{width:420px;min-height:120px;background:rgba(20,20,20,0.7);color:#ffffff;padding:6px;border-radius:4px;box-shadow:0 6px 12px rgba(0,0,0,0.45);font-family:'Minecraft','Press Start 2P', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', monospace;font-size:var(--sb-font-size);font-weight:400;border:1px solid rgba(255,255,255,0.06)}
+#sb-preview .sb-box{width:420px;min-height:120px;background:rgba(20,20,20,0.7);color:#ffffff;padding:6px;border-radius:4px;box-shadow:0 6px 12px rgba(0,0,0,0.45);font-family:'Minecraft','Segoe UI Mono',Consolas,monospace;font-size:var(--sb-font-size);font-weight:400;border:1px solid rgba(255,255,255,0.06);font-synthesis:none;-webkit-font-smoothing:none;text-rendering:optimizeSpeed}
 /* Title: allow MC color to apply; otherwise fallback to gold-like color */
-#sb-preview .sb-title{font-weight:400;margin-bottom:6px;text-align:center;letter-spacing:0.5px;text-shadow:0 1px 0 rgba(0,0,0,0.6);color:#ffffff;font-size:0.95em;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 6px}
+#sb-preview .sb-title{font-weight:400;margin-bottom:6px;text-align:center;letter-spacing:0.5px;color:#ffffff;font-size:0.95em;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 6px}
 #sb-preview .sb-lines{display:flex;flex-direction:column;gap:3px}
 #sb-preview .sb-line{padding:2px 6px;background:transparent;border-radius:2px;display:flex;align-items:center;justify-content:space-between;overflow:hidden}
 #sb-preview .sb-line .sb-text{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-right:6px;font-weight:400;color:inherit}
 #sb-preview .sb-line .sb-score{flex:0 0 28px;text-align:right;color:rgba(230,230,230,0.6);font-weight:700}
 #sb-preview .sb-line .sb-text span{display:inline}
+#sb-preview .sb-line .sb-text span[style*="line-through"]{text-decoration-thickness:2px;text-decoration-color:currentColor}
+#sb-preview .sb-line .sb-text span[style*="underline"]{text-decoration-thickness:2px;text-underline-offset:2px}
 
 /* emulate narrow in-game look */
 #sb-preview .sb-box{border:1px solid rgba(255,255,255,0.04)}

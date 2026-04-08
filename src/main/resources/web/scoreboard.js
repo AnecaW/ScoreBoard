@@ -696,8 +696,14 @@ function mcToHtml(text){
         if(state.color) style += `color:${state.color};`;
         if(state.bold) style += 'font-weight:700;';
         if(state.italic) style += 'font-style:italic;';
-        if(state.underline) style += 'text-decoration: underline;';
-        if(state.strike) style += 'text-decoration: line-through;';
+        if(state.underline || state.strike){
+            const decos = [];
+            if(state.underline) decos.push('underline');
+            if(state.strike) decos.push('line-through');
+            style += `text-decoration:${decos.join(' ')};`;
+            style += 'text-decoration-thickness:2px;';
+            style += 'text-underline-offset:2px;';
+        }
         // For magic codes, the preview should show rapidly changing characters rather than blur.
         if(state.magic){
             out.push(`<span class="mc-magic" data-original="${escapeAttr(ch)}" style="${style}">${escapeHtml(ch)}</span>`);
@@ -1065,10 +1071,13 @@ function toggleMagic(){
     // and restore the original text immediately (do not leave last-random characters behind).
     if(activeEditor && activeEditor.querySelectorAll('.mc-magic-editor').length > 0){
         stopEditorMagic(activeEditor);
+        unwrapDataMagicWrappers(activeEditor);
         updatePreview();
+        scheduleAutoSave();
         return;
     }
     // If selection contains existing magic spans, unwrap them (toggle off)
+    let unwrappedAny = false;
     const existing = [...(activeEditor?.querySelectorAll('span[data-magic], .mc-magic-editor')||[])];
     for(const s of existing){
         if(range.intersectsNode(s)){
@@ -1076,17 +1085,26 @@ function toggleMagic(){
             if(s.classList && s.classList.contains('mc-magic-editor')){
                 const orig = s.getAttribute('data-original') || s.textContent || '';
                 s.replaceWith(document.createTextNode(orig));
+                unwrappedAny = true;
             } else if(s.getAttribute && s.getAttribute('data-magic')){
                 // replace whole data-magic span with its text content
                 // also ensure any mc-magic in the preview will be restored on next update
                 s.replaceWith(document.createTextNode(s.textContent));
+                unwrappedAny = true;
             }
         }
     }
     // After unwrapping, stop editor magic for this editor if there are no more mc-magic-editor spans
-    if(activeEditor && activeEditor.querySelectorAll('.mc-magic-editor').length === 0) stopEditorMagic(activeEditor);
-    // update preview to restore original characters when toggled off
-    updatePreview();
+    if(activeEditor && activeEditor.querySelectorAll('.mc-magic-editor').length === 0){
+        stopEditorMagic(activeEditor);
+        unwrapDataMagicWrappers(activeEditor);
+    }
+    // If we just toggled existing magic off, do not immediately wrap again.
+    if(unwrappedAny){
+        updatePreview();
+        scheduleAutoSave();
+        return;
+    }
 
     // Otherwise, wrap selection into a data-magic span and then split into per-character spans for animation
     const span = document.createElement('span');
