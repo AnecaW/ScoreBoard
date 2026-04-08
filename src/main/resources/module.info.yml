@@ -1,0 +1,20 @@
+id: scoreboard
+name: Scoreboard
+version: 1.0.0
+description: Custom scoreboard module
+
+main: org.wannes.ScoreboardModule
+api-version: 1
+
+website:
+  enabled: true
+  entry: web/index.html
+  title: Scoreboard
+
+data:
+  defaults:
+    files:
+      - scoreboard.yml
+      - web/index.html
+      - web/scoreboard.css
+      - web/scoreboard.js

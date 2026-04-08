@@ -1,0 +1,167 @@
+:root{
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --accent:#4f46e5;
+  --danger:#dc2626;
+  --border:#e6e7eb;
+  --btn-bg:#eef2ff;
+  --btn-text:#111827;
+  --icon:var(--muted);
+  --icon-hover:var(--accent);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Segoe UI, Roboto, system-ui, -apple-system, sans-serif;
+  background:var(--bg);
+  color:var(--btn-text);
+  padding:12px;
+}
+.container{max-width:980px;margin:0 auto}
+header h1{margin:0 0 6px;font-size:20px}
+.muted{margin:0;color:var(--muted);font-size:12px}
+.card{background:var(--card);padding:12px;border-radius:6px;box-shadow:0 1px 3px rgba(16,24,40,.05);margin-top:12px}
+label{display:block;margin-bottom:8px;font-weight:600}
+.line-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between}
+.card-header h2{margin:0;font-size:16px}
+.actions{display:flex;gap:8px}
+.lines{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.line-row{display:flex;flex-direction:column;gap:6px}
+.row-top{display:flex;gap:8px;align-items:center}
+.row-top .editor-field{flex:1}
+.row-top .remove{background:var(--danger);color:white;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+.row-top .remove:hover{opacity:.95}
+.editor-field{flex:1;min-height:28px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:transparent;font-size:14px;outline:none}
+.editor-field:empty:before{content:attr(data-placeholder);color:var(--muted);font-size:13px}
+.editor-field:focus{box-shadow:0 0 0 2px rgba(79,70,229,0.05)}
+.line-row .remove{background:var(--danger);color:white;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.controls{margin-top:18px;display:flex;gap:12px;align-items:center}
+.btn{background:var(--btn-bg);border:none;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--btn-text)}
+.btn.primary{background:var(--accent);color:white}
+.status{color:var(--muted);font-size:13px}
+.remove:hover{opacity:.9}
+.btn:hover{opacity:.95}
+
+.pages-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;margin-top:8px}
+.field-col{display:flex;flex-direction:column;gap:6px}
+.page-visibility-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.page-vis-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,0.02)}
+.page-vis-item input[type="checkbox"]{transform:translateY(1px)}
+.page-vis-name{font-size:13px;color:var(--btn-text)}
+
+/* Toolbar styles */
+.toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.toolbar .color-row{display:flex;flex-wrap:wrap;gap:4px}
+.color-swatch{width:20px;height:16px;border-radius:3px;border:1px solid rgba(0,0,0,0.06);cursor:pointer;padding:0}
+.color-swatch:focus{outline:2px solid var(--accent)}
+/* Magic swatch: rainbow preview and subtle pulse so user recognizes special behavior */
+/* magic-swatch removed */
+.effects{display:flex;gap:6px}
+.eff-btn{padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon);transition:color .12s,background .12s,transform .06s}
+.eff-btn:hover{background:rgba(0,0,0,0.04)}
+.eff-btn:active{transform:translateY(1px)}
+.toolbar .color-swatch[aria-pressed="true"], .eff-btn[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(79,70,229,0.12)}
+.eff-btn svg{width:16px;height:16px;display:block;stroke:currentColor;fill:currentColor}
+.eff-btn:hover{color:var(--icon-hover)}
+
+/* Scoreboard preview (rechtsboven) */
+#sb-preview{position:fixed;top:12px;right:12px;z-index:1200;pointer-events:auto}
+/* If you have the official Minecraft font, place it in `web/fonts/minecraft.ttf` and
+   uncomment the @font-face block below (can't bundle it automatically). */
+@font-face{
+  font-family: 'Minecraft';
+  src: url('../fonts/minecraft.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+#preview-space: 300px;
+:root{--sb-font-size:14px;--preview-space:520px}
+
+body{padding-right:var(--preview-space)}
+
+/* Minecraft-like square scoreboard box */
+/* wider scoreboard preview */
+#sb-preview .sb-box{width:420px;min-height:120px;background:rgba(20,20,20,0.7);color:#ffffff;padding:6px;border-radius:4px;box-shadow:0 6px 12px rgba(0,0,0,0.45);font-family:'Minecraft','Press Start 2P', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', monospace;font-size:var(--sb-font-size);font-weight:400;border:1px solid rgba(255,255,255,0.06)}
+/* Title: allow MC color to apply; otherwise fallback to gold-like color */
+#sb-preview .sb-title{font-weight:400;margin-bottom:6px;text-align:center;letter-spacing:0.5px;text-shadow:0 1px 0 rgba(0,0,0,0.6);color:#ffffff;font-size:0.95em;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 6px}
+#sb-preview .sb-lines{display:flex;flex-direction:column;gap:3px}
+#sb-preview .sb-line{padding:2px 6px;background:transparent;border-radius:2px;display:flex;align-items:center;justify-content:space-between;overflow:hidden}
+#sb-preview .sb-line .sb-text{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-right:6px;font-weight:400;color:inherit}
+#sb-preview .sb-line .sb-score{flex:0 0 28px;text-align:right;color:rgba(230,230,230,0.6);font-weight:700}
+#sb-preview .sb-line .sb-text span{display:inline}
+
+/* emulate narrow in-game look */
+#sb-preview .sb-box{border:1px solid rgba(255,255,255,0.04)}
+
+/* preview controls */
+#sb-preview .sb-controls{position:fixed;top:10px;right:calc(var(--preview-space) + 96px);display:flex;gap:6px;align-items:center;z-index:1250}
+.icon-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--btn-text);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .12s,color .12s,border-color .12s}
+.icon-btn svg{width:18px;height:18px;stroke:currentColor;fill:none}
+.icon-btn:hover{color:var(--icon-hover);border-color:var(--icon-hover)}
+#sb-preview input[type=range]{width:120px}
+
+/* font-based glyph icons for effects (use Minecraft font when available) */
+.font-icon{font-family:'Minecraft','Press Start 2P', ui-monospace, monospace;font-size:13px;line-height:1;display:inline-block;width:18px;text-align:center;color:currentColor}
+.font-icon.bold-icon{font-weight:700}
+.font-icon.underline-icon{text-decoration:underline}
+.font-icon.strike-icon{text-decoration:line-through;position:relative}
+.font-icon.strike-icon::after{content:'';position:absolute;left:2px;right:2px;top:50%;height:2px;background:currentColor;transform:translateY(-50%)}
+.star-icon{width:14px;height:14px;display:block}
+/* Italic glyph using Minecraft/Press Start font */
+.font-icon.italic-icon{font-style:italic;font-family:'Minecraft','Press Start 2P',monospace;font-size:14px}
+
+/* Magic obfuscation spans in preview — JS will animate the characters rapidly */
+.mc-magic{display:inline-block;min-width:0}
+/* Editor-side magic spans (per-character) */
+.mc-magic-editor{display:inline-block;min-width:0}
+/* ensure editor obfuscated glyphs use the Minecraft/Press Start font for fidelity */
+.mc-magic-editor{font-family:'Minecraft','Press Start 2P', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', monospace}
+
+/* Rainbow color for editor selection — animated gradient clipped to text */
+/* rainbow styles removed */
+
+/* Editor outline helpers: only affect the editing surface, not the preview */
+.editor-field.outline-black, #title.outline-black{ /* white text -> black outline */
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+.editor-field.outline-white, #title.outline-white{ /* black text -> white outline */
+  text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+}
+
+/* reset spin animation */
+.eff-btn.spin .reset-icon{animation:spin 0.8s linear}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* Range styling - make slider use the same accent as the save button */
+/* Range styling - make slider use the same accent as the save button */
+#sb-preview input[type=range]{-webkit-appearance:none;appearance:none;background:transparent}
+#sb-preview input[type=range]::-webkit-slider-runnable-track{height:6px;background:linear-gradient(90deg,var(--accent),rgba(255,255,255,0.04));border-radius:6px}
+#sb-preview input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-6px;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.18);transition:transform .12s,box-shadow .12s}
+#sb-preview input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06);box-shadow:0 4px 10px rgba(0,0,0,0.22)}
+#sb-preview input[type=range]:focus{outline:none}
+#sb-preview input[type=range]::-moz-range-track{height:6px;background:linear-gradient(90deg,var(--accent),rgba(255,255,255,0.04));border-radius:6px}
+#sb-preview input[type=range]::-moz-range-progress{background:var(--accent);height:6px;border-radius:6px}
+#sb-preview input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.18);transition:transform .12s,box-shadow .12s}
+#sb-preview input[type=range]::-moz-range-thumb:hover{transform:scale(1.06);box-shadow:0 4px 10px rgba(0,0,0,0.22)}
+/* IE/Edge legacy */
+#sb-preview input[type=range]::-ms-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.18)}
+
+/* Dark mode toggle styles will use body.dark class to invert variables */
+body.dark{
+  --bg:#071018;
+  --card:#0f1720;
+  --muted:#9aa6b2;
+  --accent:#7c9cff;
+  --danger:#f87171;
+  --border:rgba(255,255,255,0.06);
+  --btn-bg:rgba(255,255,255,0.03);
+  --btn-text:#e6eef8;
+  background:#071018;color:var(--btn-text)
+}
+
+@media (max-width:720px){
+  #sb-preview{display:none}
+  .pages-grid{grid-template-columns:1fr}
+}

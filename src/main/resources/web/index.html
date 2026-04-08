@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Scoreboard Editor</title>
+    <link rel="stylesheet" href="scoreboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-main">
+            <div>
+                <h1>Scoreboard Editor</h1>
+            </div>
+            <div class="header-actions">
+                <button id="darkToggle" class="icon-btn" title="Dark mode" aria-pressed="false" aria-label="Toggle dark mode">
+                    <!-- initial content replaced by JS -->
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <section class="card">
+        <div class="card-header">
+            <h2>Pagina's</h2>
+            <div class="actions">
+                <button id="addPageBtn" class="btn">Nieuwe pagina</button>
+                <button id="removePageBtn" class="btn">Verwijder pagina</button>
+            </div>
+        </div>
+
+        <div class="pages-grid">
+            <div class="field-col">
+                <label for="pageSelect">Actieve pagina</label>
+                <select id="pageSelect" class="line-input"></select>
+            </div>
+
+            <div class="field-col">
+                <label for="rotationMode">Weergave modus</label>
+                <select id="rotationMode" class="line-input">
+                    <option value="manual">Handmatig (toon geselecteerde pagina)</option>
+                    <option value="auto">Automatisch wisselen</option>
+                </select>
+            </div>
+
+            <div class="field-col" id="autoIntervalWrap">
+                <label for="rotationSeconds">Wissel interval (seconden)</label>
+                <input id="rotationSeconds" class="line-input" type="number" min="1" max="120" value="10">
+            </div>
+        </div>
+
+        <div class="field-col" id="autoPagesWrap" style="margin-top:8px;">
+            <label>Pagina's tonen/verbergen</label>
+            <div id="pageVisibilityList" class="page-visibility-list"></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <label for="title">Titel</label>
+        <div id="toolbar" class="toolbar">
+            <div class="color-row">
+                <!-- Ordered dark -> light following spectrum-ish order -->
+                <button class="color-swatch" data-code="§0" title="Black" style="background:#000000"></button>
+                <button class="color-swatch" data-code="§8" title="Dark Gray" style="background:#555555"></button>
+                <button class="color-swatch" data-code="§1" title="Dark Blue" style="background:#0000AA"></button>
+                <button class="color-swatch" data-code="§9" title="Blue" style="background:#5555FF"></button>
+                <button class="color-swatch" data-code="§3" title="Dark Aqua" style="background:#00AAAA"></button>
+                <button class="color-swatch" data-code="§b" title="Aqua" style="background:#55FFFF"></button>
+                <button class="color-swatch" data-code="§2" title="Dark Green" style="background:#00AA00"></button>
+                <button class="color-swatch" data-code="§a" title="Green" style="background:#55FF55"></button>
+                <button class="color-swatch" data-code="§4" title="Dark Red" style="background:#AA0000"></button>
+                <button class="color-swatch" data-code="§c" title="Red" style="background:#FF5555"></button>
+                <button class="color-swatch" data-code="§6" title="Gold" style="background:#FFAA00"></button>
+                <button class="color-swatch" data-code="§e" title="Yellow" style="background:#FFFF55"></button>
+                <button class="color-swatch" data-code="§5" title="Dark Purple" style="background:#AA00AA"></button>
+                <button class="color-swatch" data-code="§d" title="Light Purple" style="background:#FF55FF"></button>
+                <button class="color-swatch" data-code="§7" title="Gray" style="background:#AAAAAA"></button>
+                <button class="color-swatch" data-code="§f" title="White" style="background:#FFFFFF;border:1px solid #ddd"></button>
+                <!-- 17th: Magic color (special) -->
+
+            </div>
+
+            <div class="effects">
+                <button class="eff-btn" data-code="§l" title="Vet (Bold)">
+                    <span class="font-icon bold-icon">B</span>
+                </button>
+                <button class="eff-btn" data-code="§o" title="Schuingedrukt (Italic)" aria-label="Schuingedrukt (Italic)">
+                    <span class="font-icon italic-icon">Z</span>
+                </button>
+                <button class="eff-btn" data-code="§n" title="Onderlijn (Underline)">
+                    <span class="font-icon underline-icon">U</span>
+                </button>
+                <button class="eff-btn" data-code="§m" title="Doorstreep (Strikethrough)">
+                    <span class="font-icon strike-icon">A</span>
+                </button>
+                <button class="eff-btn" data-code="§k" title="Magic (Verberg/obfuscate)">
+                    <svg class="star-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5l1.6 3.3 3.6.5-2.6 2.2.6 3.6L8 10.6 4.8 11.1l.6-3.6L2.8 5.3l3.6-.5L8 1.5z"/></svg>
+                </button>
+                <button class="eff-btn reset-btn" id="resetBtn" data-code="§r" title="Reset">
+                    <!-- Windows-like restart glyph -->
+                    <svg class="reset-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 12a9 9 0 1 0-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <polyline points="23 3 23 9 17 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="line-row" id="title-wrapper">
+            <div class="editor-field" id="title" contenteditable="true" spellcheck="false" data-placeholder="Voer de titel in..."></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <h2>Regels</h2>
+            <div class="actions">
+                <button id="addLineBtn" class="btn">Voeg regel toe</button>
+            </div>
+        </div>
+
+        <div id="lines" class="lines"></div>
+    </section>
+
+    <div class="controls">
+        <button id="saveBtn" class="btn primary">Opslaan</button>
+        <span id="status" class="status"></span>
+    </div>
+</div>
+
+<!-- Live preview (rechtsboven) -->
+<div id="sb-preview" aria-hidden="false">
+    <div class="sb-controls" aria-hidden="false">
+        <button id="preview-smaller" class="icon-btn" title="Kleiner">−</button>
+        <input id="preview-scale" type="range" min="10" max="28" step="1" value="14" aria-label="Preview grootte">
+        <button id="preview-bigger" class="icon-btn" title="Groter">+</button>
+    </div>
+    <div class="sb-box">
+        <div class="sb-title" id="preview-title"></div>
+        <div class="sb-lines" id="preview-lines"></div>
+    </div>
+</div>
+
+<script src="scoreboard.js"></script>
+</body>
+</html>
+

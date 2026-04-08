@@ -1,0 +1,29 @@
+mode: manual
+rotation-seconds: 10
+active-page: page-1
+
+pages:
+  - id: page-1
+    name: "Pagina 1"
+    enabled: true
+    title: "§aServerManager"
+    lines:
+      - "§7Welkom!"
+      - "§fOnline: §a%online%"
+      - "§fHave fun!"
+
+  - id: page-2
+    name: "Pagina 2"
+    enabled: true
+    title: "§bStats"
+    lines:
+      - "§fKills: §a0"
+      - "§fDeaths: §c0"
+      - "§fCoins: §e0"
+
+# Legacy fallback keys (kept in sync by web API)
+title: "§aServerManager"
+lines:
+  - "§7Welkom!"
+  - "§fOnline: §a%online%"
+  - "§fHave fun!"
