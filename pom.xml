@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><maven.compiler.release>21</maven.compiler.release>
     </properties>
 
     <repositories>
@@ -23,12 +23,15 @@
 
 
     <dependencies>
+        <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
+        <dependency><groupId>org.wannes</groupId><artifactId>placeholderapi</artifactId><version>1.0-SNAPSHOT</version><scope>test</scope></dependency>
 
         <!-- PlugModCore API -->
         <dependency>
             <groupId>org.wannes</groupId>
             <artifactId>plugmodcore-api</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Paper / Bukkit API -->
@@ -40,4 +43,6 @@
         </dependency>
 
     </dependencies>
+    <build><plugins><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.2.5</version></plugin><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><fork>true</fork></configuration></plugin></plugins></build>
 </project>
+

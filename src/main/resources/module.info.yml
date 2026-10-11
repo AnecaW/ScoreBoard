@@ -5,6 +5,10 @@ description: Custom scoreboard module
 
 main: org.wannes.ScoreboardModule
 api-version: 1
+dependencies:
+  - placeholderapi
+required-services:
+  org.wannes.plugModCore.api.PlaceholderService: placeholderapi
 
 website:
   enabled: true

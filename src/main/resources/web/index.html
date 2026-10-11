@@ -1,12 +1,13 @@
 <!doctype html>
 <html lang="nl">
 <head>
+<link rel="stylesheet" href="/web/design-system.css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Scoreboard Editor</title>
     <link rel="stylesheet" href="scoreboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-</head>
+<link rel="stylesheet" href="/web/minecraft-text-editor.css"></head>
 <body>
 <div class="container">
     <header>
@@ -15,9 +16,7 @@
                 <h1>Scoreboard Editor</h1>
             </div>
             <div class="header-actions">
-                <button id="darkToggle" class="icon-btn" title="Dark mode" aria-pressed="false" aria-label="Toggle dark mode">
-                    <!-- initial content replaced by JS -->
-                </button>
+                
             </div>
         </div>
     </header>
@@ -109,7 +108,7 @@
         </div>
 
         <div class="line-row" id="title-wrapper">
-            <div class="editor-field" id="title" contenteditable="true" spellcheck="false" data-placeholder="Voer de titel in..."></div>
+            <div class="editor-field" id="title" role="textbox" aria-label="Scoreboard title" contenteditable="true" spellcheck="false" data-placeholder="Voer de titel in..."></div>
         </div>
     </section>
 
@@ -121,12 +120,14 @@
             </div>
         </div>
 
+        <details><summary>Voorbeeldwaarden voor placeholders (alleen preview)</summary><label>Spelersnaam<input id="samplePlayer" value="ExamplePlayer"></label><label>Online spelers<input id="sampleOnline" type="number" min="0" value="12"></label><p>Previewvoorbeelden voor %player_name%, %server_online% en %player_ping%; Minecraft gebruikt de actuele placeholderservice.</p></details>
         <div id="lines" class="lines"></div>
     </section>
 
     <div class="controls">
         <button id="saveBtn" class="btn primary">Opslaan</button>
         <span id="status" class="status"></span>
+        <p class="muted">Use %server_online% with the Server expansion installed and active. %online% has no PlaceholderAPI identifier. Test configured text with /papi parse me &lt;text&gt;; the preview shows the template.</p>
     </div>
 </div>
 
@@ -143,7 +144,7 @@
     </div>
 </div>
 
-<script src="scoreboard.js"></script>
+<script src="/web/minecraft-text-editor.js"></script><script src="scoreboard.js"></script>
 </body>
 </html>
 

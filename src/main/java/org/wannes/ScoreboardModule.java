@@ -34,11 +34,12 @@ public class ScoreboardModule implements Module, ModuleWebApi {
         List<String> lines;
     }
 
-    private Scoreboard scoreboard;
+    private record PlayerBoard(Scoreboard board, Scoreboard original, String title, List<String> lines) {}
+    private final Map<java.util.UUID, PlayerBoard> boards = new java.util.HashMap<>();
+    private org.bukkit.scheduler.BukkitTask refreshTask;
     private ModuleContext context;
+    private final java.util.Set<String> reportedPlaceholderIssues = new java.util.HashSet<>();
     private File configFile;
-    private String lastAppliedTitle;
-    private List<String> lastAppliedLines = new ArrayList<>();
     private final List<ScoreboardPage> pages = new ArrayList<>();
     private String mode = "manual";
     private int rotationSeconds = 10;
@@ -47,15 +48,16 @@ public class ScoreboardModule implements Module, ModuleWebApi {
     private int rotationTaskId = -1;
     private int liveReloadDebounceTaskId = -1;
     private final Listener playerJoinListener = new Listener() {
+        @EventHandler public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) { boards.remove(event.getPlayer().getUniqueId()); }
         @EventHandler
         public void onPlayerJoin(PlayerJoinEvent event) {
-            if (scoreboard == null) return;
+            if (context == null) return;
             // Next tick to avoid race with join initialization and other plugins.
-            Bukkit.getScheduler().runTaskLater(getHostPlugin(), () -> {
-                if (scoreboard != null && event.getPlayer().isOnline()) {
-                    event.getPlayer().setScoreboard(scoreboard);
+            context.schedule(() -> {
+                if (event.getPlayer().isOnline()) {
+                    renderPlayer(event.getPlayer());
                 }
-            }, 1L);
+            }, 1L, 0L, false);
         }
     };
     private Plugin hostPlugin;
@@ -64,6 +66,8 @@ public class ScoreboardModule implements Module, ModuleWebApi {
     @Override
     public void onEnable(ModuleContext context) {
         this.context = context;
+        context.requireService(org.wannes.plugModCore.api.PlaceholderService.class, "placeholderapi");
+        hostPlugin = context.getHostPlugin();
 
         // 1. Zorg dat default files bestaan
         ensureDefaults(context);
@@ -72,25 +76,20 @@ public class ScoreboardModule implements Module, ModuleWebApi {
         configFile = new File(context.getDataFolder(), "scoreboard.yml");
         reloadFromConfig();
 
-        hostPlugin = Bukkit.getPluginManager().getPlugin("PlugModCore");
+        hostPlugin = context.getHostPlugin();
         if (hostPlugin != null && !listenerRegistered) {
-            Bukkit.getPluginManager().registerEvents(playerJoinListener, hostPlugin);
+            context.registerListener(playerJoinListener);
             listenerRegistered = true;
         }
 
+        refreshTask = context.schedule(this::applyActivePage, 20L, 20L, false);
         context.getLogger().info("Scoreboard module enabled");
     }
 
     @Override
     public void onDisable() {
-        if (scoreboard == null) return;
-
-        Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.setScoreboard(main);
-        }
-
-        scoreboard = null;
+        restoreBoards();
+        if (refreshTask != null) { refreshTask.cancel(); refreshTask = null; }
         stopLiveReloadDebounceTask();
         stopRotationTask();
         if (listenerRegistered) {
@@ -158,6 +157,7 @@ public class ScoreboardModule implements Module, ModuleWebApi {
     }
 
     public void reloadFromConfig() {
+        reportedPlaceholderIssues.clear();
         if (context == null) return;
 
         try {
@@ -174,7 +174,7 @@ public class ScoreboardModule implements Module, ModuleWebApi {
     }
 
     private void loadConfigState(YamlConfiguration cfg) {
-        pages.clear();
+        List<ScoreboardPage> nextPages = new ArrayList<>();
 
         mode = cfg.getString("mode", "manual");
         rotationSeconds = Math.max(1, cfg.getInt("rotation-seconds", 10));
@@ -203,22 +203,23 @@ public class ScoreboardModule implements Module, ModuleWebApi {
                     }
                 }
 
-                pages.add(page);
+                nextPages.add(page);
             }
         }
 
         // Backward compatibility for old single-page configs.
-        if (pages.isEmpty()) {
+        if (nextPages.isEmpty()) {
             ScoreboardPage page = new ScoreboardPage();
             page.id = "page-1";
             page.name = "Pagina 1";
             page.enabled = true;
             page.title = cfg.getString("title", "§aScoreboard");
             page.lines = cfg.getStringList("lines");
-            pages.add(page);
+            nextPages.add(page);
             activePageId = page.id;
         }
 
+        pages.clear(); pages.addAll(nextPages);
         int resolvedIndex = findPageIndexById(activePageId);
         if (resolvedIndex < 0) {
             resolvedIndex = firstEnabledPageIndex();
@@ -246,14 +247,14 @@ public class ScoreboardModule implements Module, ModuleWebApi {
         }
 
         long period = Math.max(1, rotationSeconds) * 20L;
-        rotationTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+        rotationTaskId = context.schedule(() -> {
             int next = nextEnabledPageIndex(activePageIndex);
             if (next >= 0 && next != activePageIndex) {
                 activePageIndex = next;
                 activePageId = pages.get(activePageIndex).id;
                 applyActivePage();
             }
-        }, period, period);
+        }, period, period, false).getTaskId();
     }
 
     private void scheduleLiveReloadDebounced() {
@@ -261,7 +262,7 @@ public class ScoreboardModule implements Module, ModuleWebApi {
         if (plugin == null) return;
 
         stopLiveReloadDebounceTask();
-        liveReloadDebounceTaskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::reloadFromConfig, 3L);
+        liveReloadDebounceTaskId = context.schedule(this::reloadFromConfig, 3L, 0L, false).getTaskId();
     }
 
     private void stopLiveReloadDebounceTask() {
@@ -281,71 +282,79 @@ public class ScoreboardModule implements Module, ModuleWebApi {
     private void applyActivePage() {
         if (pages.isEmpty()) return;
         if (activePageIndex < 0 || activePageIndex >= pages.size()) activePageIndex = 0;
-
-        ScoreboardPage page = pages.get(activePageIndex);
-        if (!page.enabled) {
-            int firstEnabled = firstEnabledPageIndex();
-            if (firstEnabled >= 0) {
-                activePageIndex = firstEnabled;
-                page = pages.get(activePageIndex);
-            }
+        if (!pages.get(activePageIndex).enabled) {
+            int first = firstEnabledPageIndex();
+            if (first < 0) { restoreBoards(); return; }
+            activePageIndex = first;
         }
-
-        String title = color(page.title);
-        List<String> normalizedLines = new ArrayList<>();
-        for (String line : page.lines) {
-            normalizedLines.add(color(line));
-        }
-
-        if (Objects.equals(lastAppliedTitle, title) && lastAppliedLines.equals(normalizedLines)) {
-            return;
-        }
-
-        ScoreboardManager manager = Bukkit.getScoreboardManager();
-        if (manager == null) {
-            context.getLogger().warning("ScoreboardManager is null");
-            return;
-        }
-
-        scoreboard = manager.getNewScoreboard();
-
-        Objective obj = scoreboard.registerNewObjective(
-                "pmc_scoreboard",
-                "dummy",
-                title
-        );
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-        int score = 15;
-        for (int i = 0; i < normalizedLines.size(); i++) {
-            String line = normalizedLines.get(i);
-            if (score <= 0) break;
-
-            // Use Teams for line rendering so duplicate or heavily formatted lines
-            // still display correctly (plugin-like behavior for multi-page boards).
-            // Use only one color code as entry key; avoid adding RESET which can show artifacts on some clients.
-            String entryKey = ChatColor.values()[i % ChatColor.values().length].toString();
-            Team lineTeam = scoreboard.getTeam("line_" + i);
-            if (lineTeam == null) {
-                lineTeam = scoreboard.registerNewTeam("line_" + i);
-            }
-            lineTeam.addEntry(entryKey);
-
-            String[] parts = splitForTeam(line);
-            lineTeam.setPrefix(parts[0]);
-            lineTeam.setSuffix(parts[1]);
-
-            obj.getScore(entryKey).setScore(score--);
-        }
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.setScoreboard(scoreboard);
-        }
-
-        lastAppliedTitle = title;
-        lastAppliedLines = normalizedLines;
+        for (Player player : Bukkit.getOnlinePlayers()) renderPlayer(player);
     }
 
+    String resolveText(Player player, String text) {
+        if (text == null || !text.contains("%")) return color(text);
+        org.wannes.plugModCore.api.PlaceholderService placeholders = context.getService(org.wannes.plugModCore.api.PlaceholderService.class);
+        // Reacquire each refresh; never retain a provider instance across reloads.
+        String rendered = text;
+        if (placeholders != null) { try {
+            var result = placeholders.parseDetailed(player, text); rendered = result.text();
+            for (String issue : result.diagnostics()) reportPlaceholderIssue(issue);
+        }
+        catch (IllegalStateException unavailable) { reportPlaceholderIssue("Service from placeholderapi is unavailable: " + unavailable.getMessage()); }
+        }
+        else reportPlaceholderIssue("Missing shared PlaceholderService from module placeholderapi; enable its provider");
+        return color(rendered);
+    }
+    private void reportPlaceholderIssue(String issue) {
+        if (reportedPlaceholderIssues.size() < 200 && reportedPlaceholderIssues.add(issue)) context.getLogger().warning("Scoreboard placeholder: " + issue);
+    }
+
+    private void renderPlayer(Player player) {
+        if (pages.isEmpty()) return;
+        ScoreboardPage page = pages.get(activePageIndex);
+        if (!page.enabled) return;
+        String title = resolveText(player, page.title).replace(RightAlignment.MARKER, "");
+        List<String> lines = page.lines.stream().limit(15)
+                .map(text -> RightAlignment.resolve(text, part -> resolveText(player, part))).toList();
+        PlayerBoard previous = boards.get(player.getUniqueId());
+        if (previous != null && Objects.equals(previous.title, title) && previous.lines.equals(lines)) {
+            // Respect external ownership; do not repeatedly reassign a viewer board.
+            return;
+        }
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        if (manager == null) return;
+        if(previous!=null && player.getScoreboard()!=previous.board)return;
+        Scoreboard next = previous==null?manager.getNewScoreboard():previous.board;
+        Objective objective = next.getObjective("pmc_scoreboard");
+        if(objective==null)objective=next.registerNewObjective("pmc_scoreboard", "dummy", title);
+        else if(!Objects.equals(previous.title,title))objective.setDisplayName(title);
+        // Remove only obsolete sidebar entries. Foreign and nametag teams remain untouched.
+        if(previous!=null)for(int i=lines.size();i<previous.lines.size();i++){String entry=ChatColor.values()[i%ChatColor.values().length].toString();next.resetScores(entry);Team obsolete=next.getTeam("line_"+i);if(obsolete!=null)obsolete.unregister();}
+        if(objective.getDisplaySlot()!=DisplaySlot.SIDEBAR)objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        for (int i = 0; i < lines.size(); i++) {
+            String entry = ChatColor.values()[i % ChatColor.values().length].toString();
+            if(previous!=null && i<previous.lines.size() && Objects.equals(previous.lines.get(i),lines.get(i)))continue;
+            Team team = next.getTeam("line_" + i);if(team==null)team=next.registerNewTeam("line_"+i);if(!team.hasEntry(entry))team.addEntry(entry);
+            var parts = RightAlignment.split(lines.get(i));
+            var legacy = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
+            var prefix=legacy.deserialize(parts.left());if(!Objects.equals(team.prefix(),prefix))team.prefix(prefix);
+            var score = objective.getScore(entry);
+            score.setScore(15 - i);
+            if (parts.marked()) score.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.fixed(legacy.deserialize(parts.right())));
+            else score.numberFormat(null);
+        }
+        Scoreboard original = previous == null ? player.getScoreboard() : previous.original;
+        boards.put(player.getUniqueId(), new PlayerBoard(next, original, title, lines));
+        if(previous==null)player.setScoreboard(next);
+    }
+
+    private void restoreBoards() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            PlayerBoard owned = boards.get(player.getUniqueId());
+            if (owned != null && player.getScoreboard() == owned.board) player.setScoreboard(owned.original);
+        }
+        boards.clear();
+    }
     private int findPageIndexById(String pageId) {
         for (int i = 0; i < pages.size(); i++) {
             if (Objects.equals(pages.get(i).id, pageId)) return i;
@@ -375,41 +384,6 @@ public class ScoreboardModule implements Module, ModuleWebApi {
             if (pages.get(idx).enabled) return idx;
         }
         return -1;
-    }
-
-    private String[] splitForTeam(String text) {
-        String safe = text == null ? "" : text;
-
-        // Keep safe for modern Paper while not overflowing team components.
-        int maxPrefix = 64;
-        int maxSuffix = 64;
-
-        // Avoid splitting in the middle of a formatting code (section sign + code).
-        int split = Math.min(safe.length(), maxPrefix);
-        if (split > 0 && split < safe.length() && safe.charAt(split - 1) == '§') {
-            split--;
-        }
-
-        String prefix = safe.substring(0, split);
-        String suffix = "";
-
-        if (safe.length() > split) {
-            String tail = safe.substring(split);
-
-            // Continue formatting from prefix in suffix, otherwise effects like underline/strike can get lost.
-            String carry = ChatColor.getLastColors(prefix);
-            suffix = carry + tail;
-
-            if (suffix.length() > maxSuffix) {
-                int end = maxSuffix;
-                if (end > 0 && end < suffix.length() && suffix.charAt(end - 1) == '§') {
-                    end--;
-                }
-                suffix = suffix.substring(0, end);
-            }
-        }
-
-        return new String[]{prefix, suffix};
     }
 
     private ApiResponse getScoreboardApi() {
@@ -471,7 +445,8 @@ public class ScoreboardModule implements Module, ModuleWebApi {
                     if (l > 0) sb.append(",");
                     sb.append("\"").append(jsonEscape(pageLines.get(l))).append("\"");
                 }
-                sb.append("]}");
+                sb.append("]");
+                sb.append("}");
             }
 
             sb.append("]}");
@@ -488,6 +463,7 @@ public class ScoreboardModule implements Module, ModuleWebApi {
             String activePageIdParam = params.getOrDefault("activePageId", "");
             int pageCount = Math.max(0, parseIntSafe(params.get("pageCount"), 0));
 
+            if(!java.util.Set.of("manual","auto").contains(modeParam) || pageCount>64) throw new IllegalArgumentException("Ongeldige modus of meer dan 64 pagina's");
             List<Map<String, Object>> pagesOut = new ArrayList<>();
             for (int i = 0; i < pageCount; i++) {
                 String prefix = "page." + i + ".";
@@ -512,6 +488,10 @@ public class ScoreboardModule implements Module, ModuleWebApi {
                 page.put("name", pageName);
                 page.put("enabled", pageEnabled);
                 page.put("title", pageTitle);
+                if (params.containsKey(prefix+"preserveBlankLines")) pageLines=new ArrayList<>(java.util.Arrays.asList(pageLinesText.split("\n",-1)));
+                if(pageLines.size()>15)throw new IllegalArgumentException("Maximaal 15 scoreboardregels per pagina");
+                pageLines.forEach(RightAlignment::validateText);
+                RightAlignment.validateText(pageTitle);
                 page.put("lines", pageLines);
                 pagesOut.add(page);
             }
@@ -557,7 +537,9 @@ public class ScoreboardModule implements Module, ModuleWebApi {
                     .orElse(pagesOut.get(0));
             cfg.set("title", activePage.get("title"));
             cfg.set("lines", activePage.get("lines"));
-            cfg.save(f);
+            File parent=f.getAbsoluteFile().getParentFile();parent.mkdirs();
+            java.nio.file.Path temporary=Files.createTempFile(parent.toPath(),"scoreboard-",".tmp");
+            try {cfg.save(temporary.toFile());try{Files.move(temporary,f.toPath(),java.nio.file.StandardCopyOption.ATOMIC_MOVE,java.nio.file.StandardCopyOption.REPLACE_EXISTING);}catch(java.nio.file.AtomicMoveNotSupportedException unsupported){Files.move(temporary,f.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);}}finally{Files.deleteIfExists(temporary);}
 
             scheduleLiveReloadDebounced();
             return ApiResponse.okJson("{\"status\":\"ok\"}");
@@ -576,12 +558,13 @@ public class ScoreboardModule implements Module, ModuleWebApi {
 
     private String jsonEscape(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        return RightAlignment.escape(s);
     }
 
     private Plugin getHostPlugin() {
         if (hostPlugin != null) return hostPlugin;
-        hostPlugin = Bukkit.getPluginManager().getPlugin("PlugModCore");
+        hostPlugin = context.getHostPlugin();
         return hostPlugin;
     }
 }
+

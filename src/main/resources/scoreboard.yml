@@ -9,7 +9,7 @@ pages:
     title: "§aServerManager"
     lines:
       - "§7Welkom!"
-      - "§fOnline: §a%online%"
+      - "§fOnline: §a%server_online%"
       - "§fHave fun!"
 
   - id: page-2
@@ -25,5 +25,6 @@ pages:
 title: "§aServerManager"
 lines:
   - "§7Welkom!"
-  - "§fOnline: §a%online%"
+  - "§fOnline: §a%server_online%"
   - "§fHave fun!"
+
